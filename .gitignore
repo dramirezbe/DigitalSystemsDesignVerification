@@ -1,0 +1,11 @@
+# Ignore everything inside any obj_dir directory recursively
+**/obj_dir/*
+
+# Un-ignore the compiled binaries (e.g., Vtb_behav, Vtb_thres)
+!**/obj_dir/Vtb_*
+
+# Re-ignore all generated files with extensions (e.g., Vtb_behav.cpp, .h, .mk, .o)
+**/obj_dir/Vtb_*.*
+
+# Ensure trace files are tracked, no matter where they are generated
+!*.vcd
