@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 
-module tb_mult4x4_seq;
+module tb_4bitmult;
 
     reg clk;
     reg rst;
@@ -27,15 +27,13 @@ module tb_mult4x4_seq;
     always #5 clk = ~clk;
 
     initial begin
+        $dumpfile("waveform_4bitmult.vcd");
+        $dumpvars(0, tb_4bitmult);
         clk = 0;
         rst = 1;
         start = 0;
         a = 0;
         b = 0;
-
-        // Waveform dump
-        $dumpfile("wave.vcd");
-        $dumpvars(0, tb_mult4x4_seq);
 
         #10 rst = 0;
 

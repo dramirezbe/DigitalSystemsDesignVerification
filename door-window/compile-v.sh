@@ -1,2 +1,3 @@
 #!/bin/bash
-verilator -Wno-WIDTHEXPAND --binary --trace tb_$1.v $1.v
+verilator -Wno-WIDTHEXPAND --timing --binary --trace tb_$1.v $1.v
+./obj_dir/Vtb_$1
