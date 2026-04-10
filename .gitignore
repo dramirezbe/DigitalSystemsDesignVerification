@@ -1,11 +1,23 @@
-# Ignore everything inside any obj_dir directory recursively
-**/obj_dir/*
+# Legacy Verilator outputs
+**/obj_dir/
 
-# Un-ignore the compiled binaries (e.g., Vtb_behav, Vtb_thres)
-!**/obj_dir/Vtb_*
+# Build artifacts
+**/build/
+**/sim_build/
+**/dist/
+*.vvp
 
-# Re-ignore all generated files with extensions (e.g., Vtb_behav.cpp, .h, .mk, .o)
-**/obj_dir/Vtb_*.*
-
-# Ensure trace files are tracked, no matter where they are generated
-!*.vcd
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.log
+*.lot
+*.out
+*.run.xml
+*.synctex.gz
+*.toc

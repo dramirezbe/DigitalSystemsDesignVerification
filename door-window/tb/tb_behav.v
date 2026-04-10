@@ -6,7 +6,7 @@ module tb_behav;
   alarm_beh u2 (.w(w), .d(d), .s(s), .ind(ind_beh));
 
   initial begin
-    $dumpfile("waveform_behav.vcd");
+    $dumpfile("build/waveform_behav.vcd");
     $dumpvars(0, tb_behav);
     $monitor("T=%0t | w=%b d=%b s=%b -> ind_df=%b ind_beh=%b", $time, w, d, s, ind_df, ind_beh);
 

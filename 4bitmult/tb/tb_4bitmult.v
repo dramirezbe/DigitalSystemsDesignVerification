@@ -27,7 +27,7 @@ module tb_4bitmult;
     always #5 clk = ~clk;
 
     initial begin
-        $dumpfile("waveform_4bitmult.vcd");
+        $dumpfile("build/waveform_4bitmult.vcd");
         $dumpvars(0, tb_4bitmult);
         clk = 0;
         rst = 1;

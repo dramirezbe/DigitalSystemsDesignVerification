@@ -6,7 +6,7 @@ module tb_thres;
   sensor_beh u4 (.s0(s0), .s1(s1), .s2(s2), .s3(s3), .thresh(thresh), .sel(sel), .led(led_beh));
 
   initial begin
-    $dumpfile("waveform_thres.vcd");
+    $dumpfile("build/waveform_thres.vcd");
     $dumpvars(0, tb_thres);
     $monitor("T=%0t | sel=%b thresh=%d -> led_df=%b led_beh=%b", $time, sel, thresh, led_df, led_beh);
 
