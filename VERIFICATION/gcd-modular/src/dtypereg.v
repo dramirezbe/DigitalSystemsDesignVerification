@@ -1,3 +1,5 @@
+//dtypereg.v
+
 module dtypereg #(parameter width = 8)
     (input wire [width-1:0] D,
     output reg [width-1:0] Q,

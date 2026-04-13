@@ -1,3 +1,5 @@
+//mux2xn.v
+
 module mux2xn #(parameter width = 8)
     (input wire [width-1:0] in0,
     input wire [width-1:0] in1,

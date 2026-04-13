@@ -1,3 +1,5 @@
+//gcd.v
+
 module gcd #(parameter width=8) 
     (input wire [width-1:0] in_A, 
     input wire [width-1:0] in_B,
