@@ -1,44 +1,70 @@
 # DigitalSystemsDesignVerification
 
-## Repository Summary
+## Repository Organization
 
-This repository contains small digital design verification projects in Verilog.
-Each project follows a consistent structure to keep design files, testbenches,
-and generated artifacts clearly separated.
+This repository is organized into three main areas:
 
-### Projects
+- `PROJECT/`: Final project documentation and code.
+- `TASKS/`: implementation and simulation tasks (source, testbench, build artifacts, and reports).
+- `VERIFICATION/`: modular verification exercises and supporting material.
 
-- `4bitmult`: Sequential 4x4 multiplier design and testbench.
-- `door-window`: Alarm logic and sensor threshold logic with separate testbenches.
-- `mcd-euclidean`: Project scaffold ready for source and testbench files.
+Current top-level layout:
 
-### Standard Project Layout
+```text
+.
+|-- README.md
+|-- PROJECT/
+|   `-- HW-CONTEXT.md
+|-- TASKS/
+|   |-- builder-tasks.sh
+|   |-- 16bitsqrt/
+|   |   |-- src/
+|   |   |-- tb/
+|   |   |-- build/
+|   |   `-- report/
+|   |-- 4bitmult/
+|   |   |-- src/
+|   |   |-- tb/
+|   |   `-- build/
+|   |-- door-window/
+|   |   |-- src/
+|   |   |-- tb/
+|   |   |-- build/
+|   |   `-- report/
+|   `-- gcd-euclidean/
+|       |-- src/
+|       |-- tb/
+|       `-- build/
+`-- VERIFICATION/
+	|-- EXPLAIN.md
+	`-- gcd-modular/
+		|-- src/
+		`-- tb/
+```
 
-Each project directory should use:
+## TASKS Project Layout
 
-- `src/`: design source files (`.v`)
-- `tb/`: testbench files (`.v`)
-- `build/`: generated simulation binaries (`.vvp`) and waveforms (`.vcd`)
+Each task under `TASKS/` follows this structure:
+
+- `src/`: Verilog design sources (`.v`).
+- `tb/`: testbench files (`.v`).
+- `build/`: generated simulation binaries (`.vvp`) and waveforms (`.vcd`).
+- `report/` (optional): report sources (for example `.tex`).
 
 ## Build and Simulation
 
-Use the root script:
+The task automation script is `TASKS/builder-tasks.sh`.
 
-- `./builder.sh -r <project-folder>` (compile only)
-- `./builder.sh -r <project-folder> -x` (compile and run testbenches)
-- `./builder.sh -r <project-folder> -x -w` (compile, run, and open GTKWave)
+From repository root:
+
+- `./TASKS/builder-tasks.sh -r <task-folder>`: compile testbenches.
+- `./TASKS/builder-tasks.sh -r <task-folder> -x`: compile and run simulations.
+- `./TASKS/builder-tasks.sh -r <task-folder> -x -w`: compile, run, and open GTKWave.
 
 Examples:
 
-- `./builder.sh -r 4bitmult`
-- `./builder.sh -r door-window`
-
-What the script does:
-
-1. Compiles each testbench in `tb/` against all sources in `src/` using `iverilog`.
-2. Optionally runs simulation with `vvp` when `-x` is provided.
-3. Stores outputs in `build/`.
-4. Optionally opens generated waveforms in GTKWave when `-w` is provided together with `-x`.
+- `./TASKS/builder-tasks.sh -r 4bitmult -x`
+- `./TASKS/builder-tasks.sh -r door-window -x -w`
 
 ## Requirements
 
