@@ -21,3 +21,15 @@
 *.run.xml
 *.synctex.gz
 *.toc
+
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+**/venv/
+**/env/
+**/venv3/
+**/.venv/

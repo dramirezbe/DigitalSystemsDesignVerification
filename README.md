@@ -4,9 +4,11 @@
 
 This repository is organized into three main areas:
 
-- `PROJECT/`: Final project documentation and code.
+- `PROJECT/`: main FPGA project workspace, including docs, research, RTL, simulation, and board integration.
 - `TASKS/`: implementation and simulation tasks (source, testbench, build artifacts, and reports).
 - `VERIFICATION/`: modular verification exercises and supporting material.
+
+To preserve older links and workflows, the repository root also keeps compatibility folders such as `4bitmult/`, `16bitsqrt/`, `door-window/`, and `gcd-euclidean/`. These folders act as lightweight bridge READMEs that point to the canonical content under `TASKS/`.
 
 Current top-level layout:
 
@@ -14,7 +16,14 @@ Current top-level layout:
 .
 |-- README.md
 |-- PROJECT/
-|   `-- HW-CONTEXT.md
+|   |-- README.md
+|   |-- docs/
+|   |-- research/
+|   `-- sim/
+|-- 4bitmult/
+|-- 16bitsqrt/
+|-- door-window/
+|-- gcd-euclidean/
 |-- TASKS/
 |   |-- builder-tasks.sh
 |   |-- 16bitsqrt/
@@ -41,6 +50,17 @@ Current top-level layout:
 		|-- src/
 		`-- tb/
 ```
+
+## Compatibility Folders
+
+The root-level task folders are kept for compatibility with older paths and documentation:
+
+- `4bitmult/`
+- `16bitsqrt/`
+- `door-window/`
+- `gcd-euclidean/`
+
+Each one contains a short README that redirects to the corresponding task under `TASKS/`.
 
 ## TASKS Project Layout
 
