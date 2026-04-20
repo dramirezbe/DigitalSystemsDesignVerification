@@ -1,0 +1,398 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish]{babel}
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{amsmath}
+\usepackage{tikz}
+\usepackage{listings}
+\usepackage{xcolor}
+\usetikzlibrary{automata,positioning,arrows.meta}
+
+\definecolor{codegray}{rgb}{0.95,0.95,0.95}
+\lstset{
+    basicstyle=\ttfamily\small,
+    backgroundcolor=\color{codegray},
+    frame=single,
+    breaklines=true,
+    columns=fullflexible
+}
+
+\title{Explicacion de la Implementacion de \texttt{uart\_tx}}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{Objetivo del modulo}
+
+El archivo \texttt{src/uart\_tx.v} implementa un transmisor UART sencillo. Su trabajo es tomar un byte de entrada (\texttt{tx\_data}) y enviarlo por la linea serie \texttt{tx} usando el formato clasico:
+
+\begin{itemize}
+    \item 1 bit de inicio (\texttt{start bit}) con valor \texttt{0}
+    \item 8 bits de datos
+    \item 1 bit de parada (\texttt{stop bit}) con valor \texttt{1}
+\end{itemize}
+
+Mientras se transmite el byte, la salida \texttt{tx\_busy} indica que el transmisor esta ocupado.
+
+\section{Interfaz del modulo}
+
+\begin{lstlisting}[language=Verilog]
+module uart_tx #(
+    parameter CLK_FREQ  = 27_000_000,
+    parameter BAUD_RATE = 115200
+)(
+    input  wire       clk,
+    input  wire       rst_n,
+    input  wire       tx_en,
+    input  wire [7:0] tx_data,
+    output reg        tx,
+    output reg        tx_busy
+);
+\end{lstlisting}
+
+\subsection*{Entradas}
+
+\begin{itemize}
+    \item \texttt{clk}: reloj principal del sistema.
+    \item \texttt{rst\_n}: reset activo en bajo. Cuando vale \texttt{0}, el modulo vuelve a su estado inicial.
+    \item \texttt{tx\_en}: pulso o habilitacion que ordena iniciar una transmision.
+    \item \texttt{tx\_data}: byte que se desea transmitir.
+\end{itemize}
+
+\subsection*{Salidas}
+
+\begin{itemize}
+    \item \texttt{tx}: linea serie de salida.
+    \item \texttt{tx\_busy}: indica si el modulo esta enviando un dato.
+\end{itemize}
+
+\section{Parametros}
+
+\begin{lstlisting}[language=Verilog]
+localparam CLOCKS_PER_BIT = CLK_FREQ / BAUD_RATE;
+\end{lstlisting}
+
+Esta constante define cuantos ciclos de reloj debe durar cada bit en la UART. Por ejemplo, si:
+
+\[
+\texttt{CLK\_FREQ} = 27\,000\,000
+\qquad\text{y}\qquad
+\texttt{BAUD\_RATE} = 115200
+\]
+
+entonces:
+
+\[
+\texttt{CLOCKS\_PER\_BIT} \approx \frac{27\,000\,000}{115200} = 234
+\]
+
+Eso significa que cada bit se mantiene estable durante 234 ciclos de \texttt{clk}.
+
+\section{Estados de la maquina}
+
+\begin{lstlisting}[language=Verilog]
+localparam s_IDLE  = 2'b00;
+localparam s_START = 2'b01;
+localparam s_DATA  = 2'b10;
+localparam s_STOP  = 2'b11;
+\end{lstlisting}
+
+El modulo esta organizado como una maquina de estados finitos con cuatro etapas:
+
+\begin{itemize}
+    \item \texttt{s\_IDLE}: espera un nuevo dato para transmitir.
+    \item \texttt{s\_START}: envia el bit de inicio.
+    \item \texttt{s\_DATA}: envia los 8 bits del byte.
+    \item \texttt{s\_STOP}: envia el bit de parada.
+\end{itemize}
+
+\begin{figure}[h!]
+\centering
+{\shorthandoff{<>}
+\begin{tikzpicture}[
+    >=Latex,
+    node distance=30mm,
+    on grid,
+    auto,
+    every state/.style={draw, thick, minimum size=11mm, font=\small}
+]
+    \node[state, initial] (idle) {\texttt{s\_IDLE}};
+    \node[state, right=of idle] (start) {\texttt{s\_START}};
+    \node[state, below=of start] (data) {\texttt{s\_DATA}};
+    \node[state, left=of data] (stop) {\texttt{s\_STOP}};
+
+    \path[->, thick]
+        (idle) edge[bend left=12] node {\texttt{tx\_en}} (start)
+        (idle) edge[loop above] node {\texttt{tx\_en = 0}} (idle)
+        (start) edge[loop right] node {\texttt{clk\_count \textless{} CLOCKS\_PER\_BIT - 1}} (start)
+        (start) edge node {\texttt{clk\_count = CLOCKS\_PER\_BIT - 1}} (data)
+        (data) edge[loop below] node {\shortstack{\texttt{clk\_count \textless{} CLOCKS\_PER\_BIT - 1} \\
+                 \texttt{o bit\_index \textless{} 7}}} (data)
+        (data) edge node {\shortstack{\texttt{bit\_index = 7} \\
+                                     \texttt{y fin de bit}}} (stop)
+        (stop) edge[loop left] node {\texttt{clk\_count \textless{} CLOCKS\_PER\_BIT - 1}} (stop)
+        (stop) edge[bend left=12] node {\texttt{fin de bit}} (idle);
+\end{tikzpicture}
+    }
+\caption{Diagrama visual de la FSM del transmisor UART.}
+\end{figure}
+
+\section{Registros internos}
+
+\begin{lstlisting}[language=Verilog]
+reg [1:0]  state;
+reg [15:0] clk_count;
+reg [2:0]  bit_index;
+reg [7:0]  tx_data_reg;
+\end{lstlisting}
+
+Cada registro tiene una funcion especifica:
+
+\begin{itemize}
+    \item \texttt{state}: guarda el estado actual de la maquina.
+    \item \texttt{clk\_count}: cuenta cuantos ciclos de reloj han pasado dentro del bit actual.
+    \item \texttt{bit\_index}: indica que bit del byte se esta transmitiendo, desde 0 hasta 7.
+    \item \texttt{tx\_data\_reg}: almacena una copia local del byte a transmitir.
+\end{itemize}
+
+Guardar el dato en \texttt{tx\_data\_reg} es importante porque la entrada \texttt{tx\_data} podria cambiar mientras la transmision esta en curso.
+
+\section{Bloque secuencial principal}
+
+\begin{lstlisting}[language=Verilog]
+always @(posedge clk or negedge rst_n)
+\end{lstlisting}
+
+Todo el comportamiento del transmisor ocurre en este bloque secuencial. Eso significa que:
+
+\begin{itemize}
+    \item el modulo actualiza sus registros en cada flanco positivo del reloj,
+    \item y si \texttt{rst\_n} baja a \texttt{0}, se reinicia de inmediato.
+\end{itemize}
+
+\section{Comportamiento durante reset}
+
+\begin{lstlisting}[language=Verilog]
+if (!rst_n) begin
+    state       <= s_IDLE;
+    clk_count   <= 0;
+    bit_index   <= 0;
+    tx_data_reg <= 8'h00;
+    tx          <= 1'b1;
+    tx_busy     <= 1'b0;
+end
+\end{lstlisting}
+
+Cuando ocurre reset:
+
+\begin{itemize}
+    \item el estado vuelve a \texttt{s\_IDLE},
+    \item la cuenta de reloj se limpia,
+    \item el indice del bit vuelve a cero,
+    \item la copia local del dato se borra,
+    \item la linea \texttt{tx} queda en \texttt{1},
+    \item y \texttt{tx\_busy} queda en \texttt{0}.
+\end{itemize}
+
+Que \texttt{tx} quede en \texttt{1} es correcto, porque en UART la linea en reposo se mantiene alta.
+
+\section{Estado \texttt{s\_IDLE}}
+
+\begin{lstlisting}[language=Verilog]
+s_IDLE: begin
+    tx        <= 1'b1;
+    clk_count <= 0;
+    bit_index <= 0;
+    
+    if (tx_en) begin
+        tx_data_reg <= tx_data;
+        tx_busy     <= 1'b1;
+        state       <= s_START;
+    end else begin
+        tx_busy     <= 1'b0;
+        state       <= s_IDLE;
+    end
+end
+\end{lstlisting}
+
+Este es el estado de espera.
+
+\begin{itemize}
+    \item La salida \texttt{tx} se mantiene en \texttt{1}, porque no se esta transmitiendo nada.
+    \item \texttt{clk\_count} y \texttt{bit\_index} se reinician para preparar una transmision nueva.
+    \item Si \texttt{tx\_en} se activa, el modulo captura \texttt{tx\_data}, marca \texttt{tx\_busy = 1} y pasa a \texttt{s\_START}.
+    \item Si \texttt{tx\_en} no esta activo, el modulo sigue esperando.
+\end{itemize}
+
+En otras palabras, \texttt{s\_IDLE} detecta el inicio de una nueva operacion.
+
+\section{Estado \texttt{s\_START}}
+
+\begin{lstlisting}[language=Verilog]
+s_START: begin
+    tx <= 1'b0;
+    if (clk_count < CLOCKS_PER_BIT - 1) begin
+        clk_count <= clk_count + 1;
+        state     <= s_START;
+    end else begin
+        clk_count <= 0;
+        state     <= s_DATA;
+    end
+end
+\end{lstlisting}
+
+Aqui se envia el bit de inicio.
+
+\begin{itemize}
+    \item La salida \texttt{tx} se fuerza a \texttt{0}.
+    \item \texttt{clk\_count} se incrementa ciclo a ciclo.
+    \item Mientras no se cumpla la duracion completa del bit, el estado no cambia.
+    \item Al terminar el conteo, se reinicia \texttt{clk\_count} y se pasa a \texttt{s\_DATA}.
+\end{itemize}
+
+La idea principal es que el bit de inicio dure exactamente un tiempo de bit.
+
+\section{Estado \texttt{s\_DATA}}
+
+\begin{lstlisting}[language=Verilog]
+s_DATA: begin
+    tx <= tx_data_reg[bit_index];
+    if (clk_count < CLOCKS_PER_BIT - 1) begin
+        clk_count <= clk_count + 1;
+        state     <= s_DATA;
+    end else begin
+        clk_count <= 0;
+        if (bit_index < 7) begin
+            bit_index <= bit_index + 1;
+            state     <= s_DATA;
+        end else begin
+            bit_index <= 0;
+            state     <= s_STOP;
+        end
+    end
+end
+\end{lstlisting}
+
+Este es el bloque mas importante, porque aqui se transmiten los 8 bits del byte.
+
+\subsection*{Que se envia}
+
+La linea:
+
+\begin{lstlisting}[language=Verilog]
+tx <= tx_data_reg[bit_index];
+\end{lstlisting}
+
+hace que en la salida aparezca el bit seleccionado por \texttt{bit\_index}. Como \texttt{bit\_index} empieza en 0, el modulo envia primero el bit menos significativo (\texttt{LSB}). Ese comportamiento coincide con el protocolo UART clasico.
+
+\subsection*{Como avanza}
+
+\begin{itemize}
+    \item Durante un tiempo de bit, \texttt{clk\_count} cuenta los ciclos del reloj.
+    \item Cuando termina ese tiempo, el modulo decide si debe pasar al siguiente bit o terminar la carga util.
+    \item Si \texttt{bit\_index < 7}, incrementa el indice y permanece en \texttt{s\_DATA}.
+    \item Si ya se transmitio el bit 7, reinicia \texttt{bit\_index} y cambia a \texttt{s\_STOP}.
+\end{itemize}
+
+\section{Estado \texttt{s\_STOP}}
+
+\begin{lstlisting}[language=Verilog]
+s_STOP: begin
+    tx <= 1'b1;
+    if (clk_count < CLOCKS_PER_BIT - 1) begin
+        clk_count <= clk_count + 1;
+        state     <= s_STOP;
+    end else begin
+        clk_count <= 0;
+        state     <= s_IDLE;
+    end
+end
+\end{lstlisting}
+
+En este estado se envia el bit de parada:
+
+\begin{itemize}
+    \item la linea \texttt{tx} vuelve a \texttt{1},
+    \item se espera un tiempo de bit completo,
+    \item y despues el modulo regresa a \texttt{s\_IDLE}.
+\end{itemize}
+
+Cuando vuelve a \texttt{s\_IDLE}, el transmisor ya esta listo para aceptar otro byte.
+
+\section{Secuencia completa de transmision}
+
+Si se quiere transmitir, por ejemplo, el byte:
+
+\[
+\texttt{tx\_data} = 8'b1010\,1100
+\]
+
+entonces el orden en la linea \texttt{tx} sera:
+
+\begin{enumerate}
+    \item reposo: \texttt{1}
+    \item bit de inicio: \texttt{0}
+    \item bit 0
+    \item bit 1
+    \item bit 2
+    \item bit 3
+    \item bit 4
+    \item bit 5
+    \item bit 6
+    \item bit 7
+    \item bit de parada: \texttt{1}
+\end{enumerate}
+
+Como UART transmite primero el bit menos significativo, el orden real de los bits de datos sera:
+
+\[
+0,\ 0,\ 1,\ 1,\ 0,\ 1,\ 0,\ 1
+\]
+
+\section{Papel de \texttt{tx\_busy}}
+
+La senal \texttt{tx\_busy} se activa cuando el modulo detecta \texttt{tx\_en} en \texttt{s\_IDLE}. Su objetivo es informar que el transmisor esta ocupado y no deberia recibir una nueva peticion.
+
+En este diseno, \texttt{tx\_busy} se limpia al volver a \texttt{s\_IDLE}. Eso hace que sea una bandera sencilla de control para el resto del sistema.
+
+\section{Resumen funcional}
+
+El funcionamiento general puede resumirse asi:
+
+\begin{enumerate}
+    \item el modulo espera en \texttt{s\_IDLE},
+    \item cuando \texttt{tx\_en} se activa, guarda el byte,
+    \item envia un bit de inicio en \texttt{s\_START},
+    \item envia los 8 bits del dato en \texttt{s\_DATA},
+    \item envia un bit de parada en \texttt{s\_STOP},
+    \item y vuelve a reposo.
+\end{enumerate}
+
+\section{Observaciones importantes para entender el codigo}
+
+\begin{itemize}
+    \item El diseno usa una sola maquina de estados, por eso es facil seguir su flujo.
+    \item La temporizacion de la UART depende directamente de \texttt{CLOCKS\_PER\_BIT}.
+    \item El envio de datos es \texttt{LSB first}, como es habitual en UART.
+    \item No hay bit de paridad ni multiples bits de parada; es una implementacion basica de tipo 8N1.
+    \item El modulo asume que \texttt{tx\_en} se activa cuando el transmisor esta libre.
+\end{itemize}
+
+\section{Conclusion}
+
+La implementacion de \texttt{uart\_tx.v} es un transmisor UART compacto y claro. Internamente combina:
+
+\begin{itemize}
+    \item una maquina de estados para organizar la secuencia de envio,
+    \item un contador para fijar la duracion de cada bit,
+    \item un indice para recorrer los 8 bits del byte,
+    \item y un registro auxiliar para conservar el dato durante toda la transmision.
+\end{itemize}
+
+Desde el punto de vista de aprendizaje, este modulo es una buena base para entender comunicacion serial, temporizacion por baud rate y diseño secuencial en Verilog.
+
+\end{document}
