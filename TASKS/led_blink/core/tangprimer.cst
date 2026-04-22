@@ -1,0 +1,9 @@
+//tangprimer.cst
+IO_LOC "led2" N16;
+IO_PORT "led2" IO_TYPE=LVCMOS33;
+
+IO_LOC "led3" N14;
+IO_PORT "led3" IO_TYPE=LVCMOS33;
+
+IO_LOC "clk" H11;
+IO_PORT "clk" IO_TYPE=LVCMOS33;
