@@ -33,3 +33,6 @@ __pycache__/
 **/env/
 **/venv3/
 **/.venv/
+
+# AI
+.codex
