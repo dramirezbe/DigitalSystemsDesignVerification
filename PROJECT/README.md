@@ -1,81 +1,100 @@
 # PROJECT
 
-This area is the home for the main FPGA project. The goal is to keep research, documentation, RTL, simulation, and board integration separated so the project can grow without becoming tangled.
+This project is the working area for a real FFT FPGA design and its supporting
+research. The current repository is still in an early stage: it contains design
+notes, Python reference/research scripts, and placeholder Verilog simulation
+files.
 
-## Proposed Layout
+## Current Layout
 
 ```text
 PROJECT/
 |-- README.md
 |-- docs/
-|   |-- hw-context.md
-|   |-- rfft-context.md
-|   `-- architecture.md
+|   |-- HW-CONTEXT.md
+|   `-- RFFT-CONTEXT.md
 |-- research/
 |   |-- mic-fft/
-|   |   `-- qt_fft_mic.py
+|   |   |-- qt_fft_mic.py
+|   |   `-- requirements.txt
 |   `-- rfft/
 |       `-- rfft_from_scratch.py
-|-- rtl/
-|   |-- rfft_top.v
-|   |-- sample_buffer.v
-|   |-- pack_real_to_complex.v
-|   |-- bit_reverse.v
-|   |-- twiddle_rom.v
-|   |-- butterfly_radix2.v
-|   |-- fft_stage_controller.v
-|   |-- complex_fft_core.v
-|   `-- rfft_recombine.v
-|-- sim/
-|   |-- src/
-|   |   `-- rfft.v
-|   `-- tb/
-|       |-- tb_sample_buffer.v
-|       |-- tb_butterfly_radix2.v
-|       |-- tb_complex_fft_core.v
-|       `-- tb_rfft_recombine.v
-|-- constraints/
-|   `-- tang_primer_20k/
-|       `-- top.cst
-|-- board/
-|   `-- tang_primer_20k/
-|       `-- top_wrapper.v
-|-- tools/
-|   |-- build.sh
-|   `-- simulate.sh
-|-- build/
-`-- verification/
-	`-- formal/
+`-- sim/
+    |-- src/
+    |   `-- rfft.v
+    `-- tb/
+        `-- tb_rfft.v
 ```
 
-## What Goes Where
+## Directory Guide
 
-- `docs/`: project-level hardware notes, decisions, and architecture documents.
-- `research/`: exploratory code, math experiments, and proof-of-concept scripts.
-- `rtl/`: synthesizable Verilog modules only.
-- `sim/`: top-level simulation files and testbench collection.
-- `constraints/`: board pinouts, clocks, timing constraints, and device-specific files.
-- `board/`: wrapper modules that adapt the core RTL to a specific FPGA board.
-- `tools/`: helper scripts for build, simulation, and flow automation.
-- `build/`: generated artifacts only.
-- `verification/`: assertions, formal checks, and reusable verification assets.
+- `docs/`: project notes and implementation guidance.
+- `research/`: Python experiments and reference models.
+- `research/rfft/rfft_from_scratch.py`: scratch Q15-style RFFT reference model.
+- `research/mic-fft/qt_fft_mic.py`: PyQtGraph microphone spectrum demo using the
+  scratch RFFT function.
+- `research/mic-fft/requirements.txt`: Python dependencies for the microphone
+  demo.
+- `sim/src/rfft.v`: current Verilog source placeholder for the RFFT module.
+- `sim/tb/tb_rfft.v`: current Verilog testbench placeholder.
 
-## Current Content Mapping
+## Documentation
 
-- [PROJECT/HW-CONTEXT.md](HW-CONTEXT.md) -> `docs/hw-context.md`
-- [PROJECT/docs/RFFT-CONTEXT.md](docs/RFFT-CONTEXT.md) -> `docs/rfft-context.md`
-- [PROJECT/research/mic-fft/qt_fft_mic.py](research/mic-fft/qt_fft_mic.py) -> `research/mic-fft/qt_fft_mic.py`
-- [PROJECT/sim/rfft.v](sim/rfft.v) -> `rtl/rfft_top.v` or `sim/testbenches/tb_rfft_top.v` depending on its final role
+- [docs/HW-CONTEXT.md](docs/HW-CONTEXT.md): target board notes for the Sipeed
+  Tang Primer 20K and related tooling.
+- [docs/RFFT-CONTEXT.md](docs/RFFT-CONTEXT.md): RFFT architecture notes,
+  recommended RTL module split, and testbench-first development order.
 
-## Suggested Development Order
+## Research Code
 
-1. Keep research code in `research/` as the reference model.
-2. Move design decisions into `docs/`.
-3. Implement each Verilog block in `rtl/`.
-4. Add one testbench per module in `sim/testbenches/`.
-5. Connect the modules into `rfft_top.v`.
-6. Add board-specific wrappers and constraints only after the RTL is stable.
+The Python RFFT model in `research/rfft/rfft_from_scratch.py` implements the
+main algorithm pieces that should later be matched in RTL:
+
+1. Q15 coefficient generation.
+2. Real-sample packing into an internal complex FFT input.
+3. Bit-reversed address ordering.
+4. Radix-2 butterfly stages.
+5. Real FFT recombination.
+
+The microphone demo in `research/mic-fft/qt_fft_mic.py` reads `int16` audio
+samples, calls the scratch RFFT model, and displays the magnitude spectrum with
+PyQtGraph.
+
+To set up the demo dependencies from the repository root:
+
+```sh
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r research/mic-fft/requirements.txt
+```
+
+When running the microphone demo, make sure Python can import the `research/rfft`
+module path. One simple option from the repository root is:
+
+```sh
+PYTHONPATH=research python3 research/mic-fft/qt_fft_mic.py
+```
+
+## Simulation Status
+
+The Verilog files currently exist as placeholders:
+
+- `sim/src/rfft.v`
+- `sim/tb/tb_rfft.v`
+
+The next practical step is to replace these placeholders with a minimal
+simulation target and testbench, then compare the simulated output against the
+Python reference model.
 
 ## Target Scope
 
-For now, keep the project scoped to a 16-bit, 2048-point real FFT with a 1024-point internal complex FFT core.
+The design notes currently target:
+
+- 16-bit signed real input samples,
+- a 2048-point real FFT,
+- a 1024-point internal complex FFT,
+- Q15-like fixed-point arithmetic,
+- FPGA implementation on the Sipeed Tang Primer 20K.
+
+Keep future RTL, constraints, board wrappers, generated build output, and formal
+verification files in separate directories as they are added.
