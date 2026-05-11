@@ -1,0 +1,19 @@
+// Sipeed Tang Primer 20K Dock
+// Clock/reset keep the board defaults.
+// UART is remapped to exposed PMOD2 pins for an external USB-to-UART adapter:
+// clk     -> H11
+// rst_n   -> T10
+// uart_tx -> B13
+// uart_rx -> B12
+
+IO_LOC "clk" H11;
+IO_PORT "clk" IO_TYPE=LVCMOS33 PULL_MODE=NONE;
+
+IO_LOC "rst_n" T10;
+IO_PORT "rst_n" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+
+IO_LOC "uart_tx" B13;
+IO_PORT "uart_tx" IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=8;
+
+IO_LOC "uart_rx" B12;
+IO_PORT "uart_rx" IO_TYPE=LVCMOS33 PULL_MODE=UP;
